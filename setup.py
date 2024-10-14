@@ -7,7 +7,7 @@ setup(
     install_requires=[],  # List of dependencies if any
     entry_points={
         'console_scripts': [
-            'recallvault=recallvault.main:main',  # Enables running recallvault as a CLI tool
+            'recallvault=src.main:cli',  # Enables running recallvault as a CLI tool
         ]
     },
 )

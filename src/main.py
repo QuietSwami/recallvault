@@ -23,7 +23,22 @@ console = Console()
 def cli(ctx, debug):
     """Main entry point for the project management CLI."""
     # Load the configuration at the start
-    config = Config("../config.json")
+    config_path = os.path.expanduser("~/.config/recallvault/config.json")
+    if not os.path.isfile(config_path):
+        default_config = {"path": "~/.config/recallvault", 
+                          "log_limit": "145", 
+                          "debug": False, 
+                        "template_path": "~/.config/recallvault/templates"}
+        with open(config_path, "w") as f:
+            json.dump(default_config, f, indent=4)
+    
+    config = Config(os.path.expanduser("~/.config/recallvault/config.json"))
+
+    path = os.path.expanduser(config.config["path"])
+ 
+    if not os.path.isdir(path):
+        os.mkdir(path)
+        logging.debug(f"Created project directory at {config.config['path']}.")
 
     # Set the config in the context object so all commands can access it
     ctx.ensure_object(dict)
@@ -335,7 +350,11 @@ def latest(ctx: click.Context, project_name: str, sub:str = None) -> None:
     path = os.path.join(reader.seg.project_path, reader.seg.last_log_file())
     logs = reader.read_logs(path)
     if logs:
-        log_printer(f"{project_name}/{sub}", logs.logs[-1])
+        if sub:
+            project = f"{project_name}/{sub}"
+        else:
+            project = project_name
+        log_printer(project, logs.logs[-1])
     else:
         click.echo("No logs found.")
 
@@ -446,13 +465,5 @@ def delete_template(ctx: click.Context, template_name:str) -> None:
     logging.debug(f"Deleted template {template_name}.")
 
 if __name__ == "__main__":
-    config = Config("../config.json")
-    
-    path = os.path.expanduser(config.config["path"])
- 
-    if not os.path.isdir(path):
-        os.mkdir(path)
-        logging.debug(f"Created project directory at {config.config['path']}.")
-
     cli(obj={})
 

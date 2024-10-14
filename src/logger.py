@@ -28,7 +28,7 @@ class LogEntry:
         return f"<LogEntry: {self.date} - {self.log}>"
     
     def from_string(self, log: str) -> None:
-        date, log = log.split(" - ")
+        date, log = log.split(" - ", 1) # Split only once.
         self.date = datetime.strptime(date[1:-1], "%Y-%m-%d %H:%M:%S")
         self.log = log
 
