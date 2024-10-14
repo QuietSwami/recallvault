@@ -193,16 +193,16 @@ class LogReader:
             new_log_file = self.seg.generate_file_name()
             new_path = os.path.join(self.seg.project_path, new_log_file)
 
-            for log in logs:
-                self.write_log(new_path, log)
+            # for log in logs:
+            self.write_log(new_path, logs.logs[-1])
  
         else:
             if not last_log_file:
                 last_log_file = self.seg.generate_file_name()
             
             path = os.path.join(self.seg.project_path, last_log_file)
-            for log in logs:
-                self.write_log(path, log)
+            # for log in logs:
+            self.write_log(path, logs.logs[-1])
         
     def write_log(self, file_path:str, log: LogEntry) -> None:
         with open(file_path, "a") as file:

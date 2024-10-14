@@ -163,10 +163,13 @@ def edit_project_name(ctx: click.Context, project_name: str, sub: str = None) ->
     """
     Edits the project name.
     """    
+    path = os.path.expanduser(ctx.obj["config"]["path"])
+    
     if sub:
         edit_path = os.path.join(path, project_name, sub)
     else:
         edit_path = os.path.join(path, project_name)
+
     new_name = click.prompt("New project name")
     if new_name == project_name:
         logging.debug("New project name is the same as the old one.")
