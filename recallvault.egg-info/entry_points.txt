@@ -1,0 +1,2 @@
+[console_scripts]
+recallvault = src.main:cli

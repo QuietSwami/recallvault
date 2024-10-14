@@ -3,11 +3,14 @@ from setuptools import setup, find_packages
 setup(
     name='recallvault',
     version='1.0',
-    packages=find_packages(),
-    install_requires=[],  # List of dependencies if any
+    packages=find_packages(where="src"),
+    package_dir={"": "src"},
+    install_requires=[
+        "rich-click",  # Include any other dependencies here
+    ],
     entry_points={
         'console_scripts': [
-            'recallvault=src.main:cli',  # Enables running recallvault as a CLI tool
+            'recallvault = main:cli',  # Points to the 'cli' function inside 'main.py'
         ]
     },
 )
