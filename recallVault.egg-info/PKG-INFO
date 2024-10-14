@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: recallVault
+Version: 0.0.1
+Summary: A quick and easy way to write project notes, diary entries, and more.
+Home-page: https://github.com/QuietSwami/recallvault
+Author: Francisco Mendonça
+Author-email: Francisco Mendonça <fran.abm94@gmail.com>
+Project-URL: homepage, https://github.com/QuietSwami/recallvault
+Project-URL: issues, https://github.com/QuietSwami/recallvault/issues
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: MIT License
+Classifier: Operating System :: OS Independent
+Requires-Python: >=3.6
+Description-Content-Type: text/markdown
+License-File: LICENSE
+
+# recallvault

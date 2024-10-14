@@ -1,0 +1,17 @@
+LICENSE
+MANIFEST.in
+README.md
+pyproject.toml
+requirements.txt
+setup.cfg
+setup.py
+recallVault.egg-info/PKG-INFO
+recallVault.egg-info/SOURCES.txt
+recallVault.egg-info/dependency_links.txt
+recallVault.egg-info/top_level.txt
+recallvault/__init__.py
+recallvault/cli.py
+recallvault/config.py
+recallvault/logger.py
+recallvault/main.py
+tests/__init__.py

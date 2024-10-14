@@ -1,0 +1,22 @@
+[project]
+name = "recallVault"
+version = "0.0.1"
+authors = [
+    { name="Francisco Mendonça", email="fran.abm94@gmail.com" },
+]
+description = "A quick and easy way to write project notes, diary entries, and more."
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+homepage = "https://github.com/QuietSwami/recallvault"
+issues = "https://github.com/QuietSwami/recallvault/issues"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
