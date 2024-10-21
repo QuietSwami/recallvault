@@ -3,6 +3,7 @@ from datetime import datetime
 from collections import defaultdict
 from typing import List, Optional
 import os
+import re
 
 # Get a logger for this module
 logger = logging.getLogger(__name__)
@@ -149,19 +150,28 @@ class LogReader:
         self.seg = LogSegmentation(log_limit, log_project)
     
     def read_logs(self, path: str) -> LogVector:
+        """ Reads logs from the Project's SQLitedb file.
+
+        Args:
+            path (str): Path to the log file.
+
+        Returns:
+            LogVector: A list of LogEntry objects.
+        """
         logs = LogVector()
         logger.debug(f"Reading logs from file: {path}")
 
         if not path or not os.path.exists(os.path.join(self.seg.project_path,path)): 
             logger.debug("Log file not found.")
-            return logs
         else:
             logger.debug(f"Reading logs from file: {path}")
             path = os.path.join(self.seg.project_path, path)
+            
+            
             with open(path, "r") as file:
                 curr_log = ""
                 inside_log = False
-                
+
                 for line in file:
                     # If we hit a separator, it means the current log ends
                     if line.strip() == "--------------------":
@@ -177,8 +187,21 @@ class LogReader:
                         # Continue capturing log content (including line breaks)
                         curr_log.append_log(line)
             logger.debug(f"Read {len(logs)} logs from file.")
-            return logs
+
+        return logs
     
+    def read_todos(self, logs: LogVector) -> list[str]:
+        """
+        In a given LogVector, it returns all the todos.
+        A todo is a log entry that contains the word "[ ]" in the log content.
+        """
+        todos = []
+        pattern = re.compile(r"\[\s*\](.*?)\n")
+        for log in logs:
+            todos.append([match.group(1) for match in re.finditer(pattern, log.log)])
+                         
+        return todos
+        
     def write_logs(self, logs: LogVector) -> None:
         logger.debug(f"Writing {len(logs)} logs to file.")
 

@@ -14,7 +14,6 @@ import re
 import shutil
 import json
 
-
 console = Console()
 
 @click.group()
@@ -350,13 +349,19 @@ def latest(ctx: click.Context, project_name: str, sub:str = None) -> None:
         return
 
     reader = LogReader(latest_path, int(ctx.obj["config"]["log_limit"]))
+    # reader2 = Logs(os.path.join(latest_path, reader.seg.last_log_file()))
+    # # print(reader2.logs)
+    # if reader2.logs:
+    #     if sub:
+    #         project = f"{project_name}/{sub}"
+    #     else:
+    #         project = project_name
+    #     log_printer(project, reader2.logs)
+
+
     path = os.path.join(reader.seg.project_path, reader.seg.last_log_file())
-    logs = reader.read_logs(path)
-    if logs:
-        if sub:
-            project = f"{project_name}/{sub}"
-        else:
-            project = project_name
+    if logs := reader.read_logs(path):        
+        project = f"{project_name}/{sub}" if sub else project_name
         log_printer(project, logs.logs[-1])
     else:
         click.echo("No logs found.")
@@ -467,6 +472,42 @@ def delete_template(ctx: click.Context, template_name:str) -> None:
 
     logging.debug(f"Deleted template {template_name}.")
 
+@cli.command()
+@click.option("--project", required=False, help="The project to search in.")
+@click.option("--sub", required=False, help="The sub-project to search in.")
+@click.pass_context
+def todo(ctx: click.Context, project:str = None, sub:str = None) -> None:
+    """
+    Return todos from the latest log file.
+    A todo is anystring that contains the pattern "[ ]" in the log content.
+    """
+    path = os.path.expanduser(ctx.obj["config"]["path"])
+    if not os.path.isdir(path):
+        logging.error(f"Path {path} does not exist.")
+        return
+
+    if sub:
+        project_path = os.path.join(path, project, sub)
+    else:
+        project_path = os.path.join(path, project)
+    
+    if not os.path.isdir(project_path):
+        logging.error(f"Project {project} does not exist.")
+        return
+    
+    reader = LogReader(project_path, int(ctx.obj["config"]["log_limit"]))
+    logs = reader.read_logs(reader.seg.last_log_file())
+    todos = reader.read_todos(logs)
+    project_name = f"{project}/{sub}" if sub else project
+    if todos:
+        click.echo(f"Project: {project_name}")
+        for todo in todos:
+            print(todo)
+            for entry in todo:
+                print(entry)
+            click.echo(f"  - {todo}")
+        click.echo("\n")
+    
 if __name__ == "__main__":
     cli(obj={})
 
