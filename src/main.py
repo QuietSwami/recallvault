@@ -13,6 +13,7 @@ from datetime import datetime
 import re
 import shutil
 import json
+import log
 
 console = Console()
 
@@ -53,59 +54,54 @@ def cli(ctx, debug):
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
         handlers=[logging.StreamHandler()]
     )
-
 @cli.command()
 @click.pass_context
 def list(ctx: click.Context) -> None:
     """
     Lists all projects in the default directory.
     """
-    path = os.path.expanduser(ctx.obj["config"]["path"])
-    logging.debug(f"Listing projects in {path}...")
+    all_projects = log.list_all_projects()
 
-    if os.path.isdir(path):
-        tree = Tree(f"[magenta]Projects:")
+    # Create the root of the tree
+    tree = Tree("[magenta]Projects:")
+    
+    # Dictionary to hold nodes for quick access
+    node_dict = {None: tree}  # Root projects use `None` as their parent_id
 
-        def add_to_tree(parent_node, current_path):
-            for item in os.listdir(current_path):
-                item_path = os.path.join(current_path, item)
-                if os.path.isdir(item_path):
-                    child_node = parent_node.add(f"{item}")
-                    add_to_tree(child_node, item_path)
+    # Populate the tree with projects
+    for project in all_projects:
+        # Find the parent node from the dictionary or use the tree root
+        parent_node = node_dict.get(project.parent_id, tree)
+        
+        if project.parent_id is not None:
+        # Add the project to its parent node
+            current_node = parent_node.add(f"[green]{project.name}[/]")
+        else:
+            current_node = parent_node.add(f"[blue]{project.name}[/]")
+        
+        # Store the current node in the dictionary so it can be used as a parent
+        node_dict[project.id] = current_node
 
-        add_to_tree(tree, path)
-        console.print(tree)
-    else:
-        click.echo(f"Path {path} does not exist.")
+    # Print the tree to the console
+    console.print(tree)
 
-@cli.command()
+
+@cli.command(["create", "c"], short_help="Creates a new project")
 @click.argument("project_name")
-@click.option("--sub", required=False, help="Creates a sub-folder in the project. If project doesn't exists, it creates it.")
 @click.pass_context
-def create(ctx: click.Context, project_name: str, sub: str = None) -> None:
+def create(ctx: click.Context, project_name: str) -> None:
     """
     Creates a new project in the default directory.
     """
-    path = os.path.expanduser(ctx.obj["config"]["path"])
-    logging.debug(f"Creating project {project_name} in {path}...")
+    logging.debug(f"Creating project {project_name}...")
 
-    if not os.path.isdir(path):
-        logging.error(f"Path {path} does not exist.")
-        return
-
-    if sub:
-        sub_path = os.path.join(path, project_name, sub)
-        if os.path.isdir(sub_path):
-            logging.error(f"Sub-folder {sub} already exists in project {project_name}.")
-            return
-        os.makedirs(os.path.join(path, project_name, sub), exist_ok=True)
-        logging.debug(f"Created sub-folder {sub} in project {project_name}.")
+    project_name, sub_project = project_name.split("/") if "/" in project_name else (project_name, None)
+    print(project_name)
+    print(sub_project)
+    if sub_project:
+        log.create_project(project_name, sub_project)
     else:
-        if os.path.isdir(os.path.join(path, project_name)):
-            logging.error(f"Project {project_name} already exists.")
-            return
-        os.mkdir(os.path.join(path, project_name))
-        logging.debug(f"Created project {project_name}.")
+        log.create_project(project_name)
 
 
 @cli.command()
@@ -234,7 +230,6 @@ def writer(editor, template:str = None) -> str:
 
     os.remove(tmp_file_name)
     return text
-
 
 @cli.command()
 @click.argument("project_name")

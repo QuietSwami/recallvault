@@ -11,6 +11,7 @@ class Project(Base):
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False)
+    archive = Column(Boolean, nullable=False, default=False)
     
     # Used for subprojects - if a project is a subproject, this will be the parent project's id
     parent_id = Column(Integer, ForeignKey("projects.id"), nullable=True)
@@ -48,6 +49,7 @@ class Todo(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     description = Column(String, nullable=False)
     completed = Column(Boolean, nullable=False, default=False)
+    due_date = Column(DateTime, nullable=True)
     
     log_id = Column(Integer, ForeignKey("logs.id"), nullable=False)
     log = relationship("LogEntry", back_populates="todos")
@@ -70,7 +72,6 @@ def _create_project(session: Session, name: str, parent_id: int = None) -> None:
     project_id = project.id
     session.add(project)
     session.commit()
-    print(f"Project created: {project}")
     session.close()
 
 # Functions to interact with the database
@@ -85,6 +86,15 @@ def create_project(name: str, parent_id: int = None) -> None:
     else:
         _create_project(session, name, parent_id)  
 
+
+def get_project_id(name: str) -> int:
+    """Get the ID of a project by name."""
+    session = Session()
+    
+    if project:= session.query(Project).filter_by(name=name).first():
+        return project.id
+    print(f"Project with name {name} not found.")
+    return None
 
 
 def get_subprojects(project_id: int) -> None:
@@ -101,8 +111,10 @@ def get_subprojects(project_id: int) -> None:
     session.close()
     
     
-def add_log_to_project(project_id: int, log_text: str) -> None:
-    """Add a log entry to a project."""
+def add_log_to_project(project_id: int, log_text: str) -> int:
+    """Add a log entry to a project.
+        Returns the ID of the log entry.
+    """
     session = Session()
     
     if project:= session.query(Project).filter_by(id=project_id).first():
@@ -110,9 +122,11 @@ def add_log_to_project(project_id: int, log_text: str) -> None:
         session.add(log)
         session.commit()
         print(f"Log added to project {project.name}.")
+        return log.id
     else:
         print(f"Project with ID {project_id} not found.")
-    
+        return None
+
     session.close()
 
 def update_log(log_id: int, new_text: str) -> None:
@@ -129,43 +143,53 @@ def update_log(log_id: int, new_text: str) -> None:
     session.close()
 
 
-def get_logs_from_project(project_id: int) -> List[LogEntry]:
-    """Returns all logs for a specific project.
+def get_logs_from_project(project_id: int, number: int) -> List[LogEntry]:
+    """Returns a sorted list of logs for a specific project, ordered by date.
 
     Args:
         project_id (int): Project ID for which logs are to be retrieved.
+        number (int): The maximum number of logs to retrieve; if 0, retrieves all logs.
 
     Returns:
-        List[LogEntry]: A list of LogEntry objects.
+        List[LogEntry]: A list of LogEntry objects, ordered by date.
     """
     session = Session()
     
-    if project:= session.query(Project).filter_by(id=project_id).first():
-        logs = project.logs
-        session.close()
-        return logs
-    else:
+    # Fetch the project by ID
+    project = session.query(Project).filter_by(id=project_id).first()
+    if not project:
         session.close()
         print(f"Project with ID {project_id} not found.")
         return []
     
+    # Order logs by date in descending order (latest logs first)
+    logs_query = session.query(LogEntry).filter_by(project_id=project_id).order_by(LogEntry.date.desc())
+    
+    # Limit the number of logs if a specific number is provided
+    if number:
+        logs_query = logs_query.limit(number)
+    
+    logs = logs_query.all()
+    session.close()
+    
+    return logs
 
-def add_todo_to_log(log_id: int, todo_description: str) -> None:
+
+def add_todo_to_log(log_id: int, completed: bool, todo_description: str, due_date: DateTime = None) -> None:
     """Add a todo to a log entry."""
     session = Session()
     
     if log:= session.query(LogEntry).filter_by(id=log_id).first():
-        todo = Todo(description=todo_description, log=log)
+        todo = Todo(description=todo_description, log=log, completed=completed, due_date=due_date)
         session.add(todo)
         session.commit()
-        print("Todo added to log entry.")
     else:
         print(f"Log entry with ID {log_id} not found.")
     
     session.close()
     
 
-def update_todo_status(todo_id: int, completed: bool) -> None:
+def update_todo_status(todo_id: int, completed: bool, todo_description: str = None, due_date: DateTime = None) -> None:
     """Update the status of a todo.
 
     Args:
@@ -176,13 +200,33 @@ def update_todo_status(todo_id: int, completed: bool) -> None:
     
     if todo:= session.query(Todo).filter_by(id=todo_id).first():
         todo.completed = completed
+        todo.description = todo_description or todo.description
+        todo.due_date = due_date
         session.commit()
-        print("Todo status updated.")
     else:
         print(f"Todo with ID {todo_id} not found.")
     
     session.close()
 
+def get_project_name_from_log(log_id: int) -> str:
+    """Returns the name of the project for a specific log entry.
+
+    Args:
+        log_id (int): Log entry ID for which project name is to be retrieved.
+
+    Returns:
+        str: Name of the project.
+    """
+    session = Session()
+    
+    if log:= session.query(LogEntry).filter_by(id=log_id).first():
+        project_name = log.project.name
+        session.close()
+        return project_name
+    else:
+        session.close()
+        print(f"Log entry with ID {log_id} not found.")
+        return ""
 
 def get_todos_from_log(log_id: int) -> List[Todo]:
     """Returns all todos for a specific log entry.
@@ -240,12 +284,54 @@ def list_all_projects() -> List[Project]:
     """Returns all projects from the database.
 
     Returns:
-        List[Project]: A list of Project objects.
+        List[Project]: A list of unarchived Project objects.
     """
     session = Session()
-    projects = session.query(Project).all()
+    projects = session.query(Project).filter(Project.archive == False).all()
     session.close()
     return projects
+
+def delete_project(project_id) -> None:
+    """Delete a project and its subprojects."""
+    session = Session()
+    
+    if project:= session.query(Project).filter_by(id=project_id).first():
+        session.delete(project)
+        session.commit()
+        print(f"Project '{project.name}' deleted.")
+    else:
+        print(f"Project with ID {project_id} not found.")
+    
+    session.close()
+
+
+def archive_project(project_id) -> None:
+    """Archive a project."""
+    session = Session()
+    
+    if project:= session.query(Project).filter_by(id=project_id).first():
+        project.archive = True
+        session.commit()
+        print(f"Project '{project.name}' archived.")
+    else:
+        print(f"Project with ID {project_id} not found.")
+    
+    session.close()
+
+
+def unarchive_project(project_id) -> None:
+    """Unarchive a project."""
+    session = Session()
+    
+    if project:= session.query(Project).filter_by(id=project_id).first():
+        project.archive = False
+        session.commit()
+        print(f"Project '{project.name}' unarchived.")
+    else:
+        print(f"Project with ID {project_id} not found.")
+    
+    session.close()
+
 
 # create_project("Main Project")
 # # add_log_to_project(1, "Initial log entry for the project.")
@@ -263,3 +349,7 @@ def list_all_projects() -> List[Project]:
 # # print(get_todos_from_log(1))
 # print(get_all_todos_from_project(1))
 # print(get_all_todos())
+
+# create_project("Test_sub", parent_id=1)
+# print(list_all_projects())
+# print(get_subprojects(1))

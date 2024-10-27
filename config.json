@@ -1,1 +1,1 @@
-{"path": "~/.config/recallvault", "log_limit": "145", "debug": false, "template_path": "~/.config/recallvault/templates"}
+{"path": "~/.config/recallvault", "log_limit": "145", "debug": false, "template_path": "~/.config/recallvault/templates", "editor": "nano"}
